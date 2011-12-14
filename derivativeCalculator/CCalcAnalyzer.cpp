@@ -35,58 +35,65 @@ CCalcNode *CCalcAnalyzer::error(const string &s)
 CCalcNode *CCalcAnalyzer::expr(bool get)
 {
 	CCalcNode *left=term(get);
-	CCalcActionNode cur();
 	for (;;)
 		switch (curr_tok)
 	{
 		case PLUS:
-			left+=term(true);
+			{
+				CCalcActionNode *cur=new CCalcActionNode(ACTION_ADD);
+				cur->addArgument(left);
+				cur->addArgument(term(true));
+				return cur;
+			}
 			break;
 		case MINUS:
-			left-=term(true);
-			break;
+			{
+				CCalcActionNode *cur=new CCalcActionNode(ACTION_SUBTRACT);
+				cur->addArgument(left);
+				cur->addArgument(term(true));
+				return cur;
+			}
 		default:
 			return left;
 	}
 }
 CCalcNode *CCalcAnalyzer::term(bool get)
 {
-	double left=pwr(get);
+	CCalcNode *left=pwr(get);
 	for (;;)
 		switch (curr_tok)
 	{
 		case MUL:
-			left*=pwr(true);
+			{
+				CCalcActionNode *cur=new CCalcActionNode(ACTION_MULTIPLY);
+				cur->addArgument(left);
+				cur->addArgument(pwr(true));
+				return cur;
+			}
 			break;
 		case DIV:
-			if (double d=pwr(true))
 			{
-				left/=d;
-				break;
-			}else
-				return error("division by zero");
+				CCalcActionNode *cur=new CCalcActionNode(ACTION_DIVIDE);
+				cur->addArgument(left);
+				cur->addArgument(pwr(true));
+				return cur;
+			}
 		default:
 			return left;
 	}
 }
 CCalcNode *CCalcAnalyzer::pwr(bool get)
 {
-	double left=prim(get);
+	CCalcNode *left=prim(get);
 	for (;;)
 		switch (curr_tok)
 	{
 		case POWER:
 			{
-				double it=prim(true);
-				if (it<0)
-					left=1/pow(left,-it);
-				else
-					left=pow(left,it);
-				//double r=1;
-				//for (int i=0;i<it;i++)
-				//	r*=left;
-				//left=r;
-				break;
+				CCalcActionNode *cur=new CCalcActionNode(ACTION_RAISE);
+				cur->addArgument(left);
+				cur->addArgument(prim(true));
+				return cur;
 			}
 		default:
 			return left;
@@ -102,7 +109,7 @@ CCalcNode *CCalcAnalyzer::prim(bool get)
 		{
 			double v=number_value;
 			get_token();
-			return v;
+			return new CCalcConstantNode(v);
 		}
 	case NAME:
 		{
@@ -110,23 +117,17 @@ CCalcNode *CCalcAnalyzer::prim(bool get)
 			if (cur_tok==LP)
 			{
 				string str=string_value;
-				double e=expr(true);
+				CCalcNode *e=expr(true);
 				get_token();
-				if (!ftable[str]) return e;
-				return ftable[str](e);
+
+				CCalcActionNode *cur=new CCalcActionNode(ACTION_FUNCTION, str);
+				cur->addArgument(e);
+				return cur;
 			}
-			if (cur_tok==LSQ)
-			{
-				double e=floor(prim(false));
-				prim(true);
-				if (!ftable[string_value]) return prim(true);
-				return ftable[string_value](e);
-			}
-			double &v=table[string_value];
-			if (cur_tok==ASSIGN) v=expr(true);
-			return v;
+			//if (cur_tok==ASSIGN) v=expr(true);
+			return new CCalcVariableNode(string_value);
 		}
-	case MINUS:
+	/*case MINUS:
 		return -prim(true);
 	case FACTORIAL:
 		{
@@ -158,7 +159,7 @@ CCalcNode *CCalcAnalyzer::prim(bool get)
 			get_token();
 			return modf(e,&a);
 		}
-		break;
+		break;*/
 	default:
 		return error("primary expression required");
 	}

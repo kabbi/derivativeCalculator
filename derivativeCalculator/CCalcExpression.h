@@ -42,8 +42,9 @@ class CCalcActionNode : public CCalcNode
 private:
 	vector<CCalcNode *> arguments;
 	CALC_ACTION_TYPE type;
+	string fun;
 public:
-	CCalcActionNode(CALC_ACTION_TYPE type) : type(type) {}
+	CCalcActionNode(CALC_ACTION_TYPE type, string fun="") : type(type), fun(fun) {}
 	~CCalcActionNode() {}
 
 	void addArgument(CCalcNode *node) {arguments.push_back(node);}
@@ -51,6 +52,9 @@ public:
 	int getArgumentCout() {return arguments.size();}
 
 	CALC_ACTION_TYPE getActionType() {return type;}
+
+	void setFunction(string f) {fun=f;}
+	string getFunction() {return fun;}
 
 	CALC_NODE_TYPE getType() {return NODE_ACTION;}
 };
